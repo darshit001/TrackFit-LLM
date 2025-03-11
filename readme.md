@@ -11,6 +11,24 @@ The system follows these steps:
 
 ---
 
+## Folder Structure
+```
+/
+├── .env
+├── main.py
+├── database/
+│   ├── __init__.py
+│   ├── db_connection.py
+│   ├── fetch_data.py
+├── services/
+│   ├── generate_prompt.py
+│   ├── groq_service.py
+├── README.md
+├── requirements.txt
+```
+
+---
+
 ## Prerequisites
 Before running the code, ensure you have the following:
 
@@ -39,105 +57,6 @@ DB_PASSWORD=your_database_password
 DB_HOST=your_database_host
 DB_PORT=your_database_port
 GROQ_API_KEY=your_groq_api_key
-```
-
----
-
-## Code Implementation
-```python
-import os
-import psycopg2
-from dotenv import load_dotenv
-from groq import Groq
-
-# Load environment variables
-load_dotenv()
-
-# Database connection details
-DB_CONFIG = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT")
-}
-
-# Initialize Groq client
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-client = Groq(api_key=GROQ_API_KEY)
-
-# Function to fetch customer details from PostgreSQL
-def fetch_customer_details():
-    try:
-        conn = psycopg2.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-
-        query = """
-        SELECT customer_id, weight_kg, height_cm, gender, age, activity_level, diet_category, meal_frequency, goal 
-        FROM customerdetails 
-        ORDER BY customer_id DESC  
-        LIMIT 1;
-        """
-        cursor.execute(query)
-        customer = cursor.fetchone()
-
-        cursor.close()
-        conn.close()
-
-        if customer:
-            return {
-                "customer_id": customer[0],
-                "weight": customer[1],
-                "height": customer[2],
-                "gender": customer[3],
-                "age": customer[4],
-                "activity_level": customer[5],
-                "diet_category": customer[6],
-                "meal_frequency": customer[7],
-                "goal": customer[8]
-            }
-        else:
-            return None
-    except Exception as e:
-        print("Error fetching data:", e)
-        return None
-
-def generate_prompt(customer):
-    prompt = f"""
-    (Prompt content as described in the previous code)
-    """
-    return prompt
-
-# Function to get a response from Groq
-def get_groq_response(prompt):
-    try:
-        chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model="llama3-70b-8192",
-        )
-        return chat_completion.choices[0].message.content
-    except Exception as e:
-        print("Failed to generate a response:", e)
-        return None
-
-# Main function
-def main():
-    customer = fetch_customer_details()
-    if not customer:
-        print("No customer data found!")
-        return
-
-    prompt = generate_prompt(customer)
-    response = get_groq_response(prompt)
-
-    if response:
-        print(response)
-    else:
-        print("Failed to generate a response.")
-
-# Run the script
-if __name__ == "__main__":
-    main()
 ```
 
 ---
