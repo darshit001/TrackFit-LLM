@@ -13,11 +13,10 @@ The system follows these steps:
 
 ## Folder Structure
 ```
-/
+
 ├── .env
 ├── main.py
 ├── database/
-│   ├── __init__.py
 │   ├── db_connection.py
 │   ├── fetch_data.py
 ├── services/
