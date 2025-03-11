@@ -1,91 +1,169 @@
-Diet and Workout Recommendation System
+# Personalized Diet and Workout Recommendation System
 
-This project generates personalized diet and workout plans based on customer details fetched from a PostgreSQL database. The system uses the Groq API to create customized recommendations.
+This project generates personalized diet and workout plans using customer data from a PostgreSQL database and the Groq API for AI-driven recommendations.
 
-Features
+## Project Overview
+The system follows these steps:
+1. Fetch customer data from PostgreSQL.
+2. Generate a detailed prompt based on customer details.
+3. Use the Groq API to create personalized diet and workout plans.
+4. Display the generated plans in JSON format.
 
-Fetches customer details from PostgreSQL database
+---
 
-Generates diet and workout plans based on user data and goals
+## Prerequisites
+Before running the code, ensure you have the following:
 
-Calculates total daily calorie needs using the Mifflin-St Jeor Equation
+- Python 3.10+
+- PostgreSQL database
+- Required Libraries:
+  - `psycopg2`
+  - `dotenv`
+  - `groq`
 
-Provides detailed meal and workout plans in JSON format
+### Installation
+Install dependencies using pip:
+```bash
+pip install psycopg2 dotenv groq
+```
 
-Technologies Used
+---
 
-Python
+## Environment Variables
+Create a `.env` file in your project root with the following keys:
 
-PostgreSQL
+```
+DB_NAME=your_database_name
+DB_USER=your_database_user
+DB_PASSWORD=your_database_password
+DB_HOST=your_database_host
+DB_PORT=your_database_port
+GROQ_API_KEY=your_groq_api_key
+```
 
-Groq API
+---
 
-Dotenv (for environment variable management)
+## Code Implementation
+```python
+import os
+import psycopg2
+from dotenv import load_dotenv
+from groq import Groq
 
-Installation
+# Load environment variables
+load_dotenv()
 
-Clone this repository:
+# Database connection details
+DB_CONFIG = {
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT")
+}
 
-git clone <repository_url>
-cd <project_directory>
+# Initialize Groq client
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+client = Groq(api_key=GROQ_API_KEY)
 
-Install required dependencies:
+# Function to fetch customer details from PostgreSQL
+def fetch_customer_details():
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor()
 
-pip install psycopg2 groq python-dotenv
+        query = """
+        SELECT customer_id, weight_kg, height_cm, gender, age, activity_level, diet_category, meal_frequency, goal 
+        FROM customerdetails 
+        ORDER BY customer_id DESC  
+        LIMIT 1;
+        """
+        cursor.execute(query)
+        customer = cursor.fetchone()
 
-Create a .env file in the root folder and add the following:
+        cursor.close()
+        conn.close()
 
-DB_NAME=<your_database_name>
-DB_USER=<your_database_username>
-DB_PASSWORD=<your_database_password>
-DB_HOST=<your_database_host>
-DB_PORT=<your_database_port>
-GROQ_API_KEY=<your_groq_api_key>
+        if customer:
+            return {
+                "customer_id": customer[0],
+                "weight": customer[1],
+                "height": customer[2],
+                "gender": customer[3],
+                "age": customer[4],
+                "activity_level": customer[5],
+                "diet_category": customer[6],
+                "meal_frequency": customer[7],
+                "goal": customer[8]
+            }
+        else:
+            return None
+    except Exception as e:
+        print("Error fetching data:", e)
+        return None
 
-Usage
+def generate_prompt(customer):
+    prompt = f"""
+    (Prompt content as described in the previous code)
+    """
+    return prompt
 
-Ensure your PostgreSQL database is running and accessible.
+# Function to get a response from Groq
+def get_groq_response(prompt):
+    try:
+        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama3-70b-8192",
+        )
+        return chat_completion.choices[0].message.content
+    except Exception as e:
+        print("Failed to generate a response:", e)
+        return None
 
-Run the script:
+# Main function
+def main():
+    customer = fetch_customer_details()
+    if not customer:
+        print("No customer data found!")
+        return
 
+    prompt = generate_prompt(customer)
+    response = get_groq_response(prompt)
+
+    if response:
+        print(response)
+    else:
+        print("Failed to generate a response.")
+
+# Run the script
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## Usage Instructions
+1. Add customer data to the PostgreSQL database.
+2. Ensure the `.env` file is correctly configured.
+3. Run the Python script:
+```bash
 python main.py
+```
 
-The generated diet and workout plan will be displayed in the console as a JSON response.
+---
 
-Database Table Structure
-
-The customerdetails table should have the following columns:
-
-customer_id
-
-weight_kg
-
-height_cm
-
-gender
-
-age
-
-activity_level
-
-diet_category
-
-meal_frequency
-
-goal
-
-Output JSON Structure
-
+## Expected JSON Response Format
+```json
 {
   "user_information": {
-    "customer_id": "1",
+    "customer_id": "123",
     "weight": "70 kg",
     "height": "175 cm",
     "gender": "Male",
     "age": "30 years",
     "activity_level": "Moderately Active",
     "diet_preference": "Vegetarian",
-    "meal_frequency": "3 meals",
+    "meal_frequency": "3",
     "goal": "Gain Weight"
   },
   "diet_plan": {
@@ -96,18 +174,6 @@ Output JSON Structure
         "food_items": "Oatmeal with almond milk and banana",
         "portion_size": "50g oats, 200ml milk, 1 medium banana",
         "calorie_count": "400 kcal"
-      },
-      {
-        "meal": "Lunch",
-        "food_items": "Quinoa salad with chickpeas",
-        "portion_size": "100g quinoa, 50g chickpeas",
-        "calorie_count": "450 kcal"
-      },
-      {
-        "meal": "Dinner",
-        "food_items": "Grilled tofu with steamed broccoli",
-        "portion_size": "100g tofu, 150g broccoli",
-        "calorie_count": "350 kcal"
       }
     ]
   },
@@ -118,21 +184,17 @@ Output JSON Structure
         "exercise": "Brisk Walking",
         "duration_reps": "30 minutes",
         "estimated_calories_burned": "200 kcal"
-      },
-      {
-        "exercise": "Bodyweight Squats",
-        "duration_reps": "3 sets of 15 reps",
-        "estimated_calories_burned": "100 kcal"
       }
     ]
   }
 }
+```
 
-License
+---
 
-This project is licensed under the MIT License.
+## Future Improvements
+- Add dynamic input validation for customer data.
+- Implement caching to improve performance.
+- Enhance the prompt logic for more precise recommendations.
 
-Author
-
-Darshit Radadiya
-
+If you have questions or need further explanations, feel free to ask! 🚀
